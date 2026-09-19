@@ -38,7 +38,7 @@
 <script type="text/babel">
 const { useState, useEffect, useMemo, useRef } = React;
 
-const STORAGE_KEY = 'hoc_tap_hub_v2';
+const STORAGE_KEY = 'hoc_tap_hub_v2_fix';
 const STORAGE_KEY_PASS = 'hoc_tap_hub_pass_v2';
 const STORAGE_KEY_CATS = 'hoc_tap_hub_cats_v2';
 const DEFAULT_PASSWORD = '2002';
@@ -62,14 +62,15 @@ const EMOJI_CHOICES = [
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
-/* Hàm tự động nhận diện đường dẫn chuẩn tuyệt đối trên GitHub Pages cho mọi thiết bị */
+/* Hàm xử lý URL chuẩn xác cho mọi thiết bị khi truy cập qua GitHub Pages */
 const resolveUrl = (url) => {
     if (!url) return '#';
     if (/^(https?:\/\/|blob:|data:|mailto:)/i.test(url)) {
         return url;
     }
     const cleanUrl = url.startsWith('/') ? url.slice(1) : url;
-    const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+    const currentPath = window.location.href.split('?')[0].split('#')[0];
+    const base = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
     return base + cleanUrl;
 };
 
@@ -213,7 +214,7 @@ const ChangePasswordModal = ({ currentPassword, onSave, onClose }) => {
 
 /* Modal Quản lý Môn học */
 const ManageCategoriesModal = ({ categories, programs, onApply, onClose }) => {
-    const [list, setList] = useState(categories.map(c => ({ originalName: c, name: c, temp: c, editing: false })));
+    const [list, setList] = useState(categories.map(c => ({ originalName: c, name: c, temp: c })));
     const [newName, setNewName] = useState('');
     const [error, setError] = useState('');
 
@@ -221,7 +222,7 @@ const ManageCategoriesModal = ({ categories, programs, onApply, onClose }) => {
         const v = newName.trim();
         if (!v) { setError('Nhập tên môn!'); return; }
         if (list.some(x => x.name.toLowerCase() === v.toLowerCase())) { setError('Môn đã tồn tại!'); return; }
-        setList(prev => [...prev, { originalName: null, name: v, temp: v, editing: false }]);
+        setList(prev => [...prev, { originalName: null, name: v, temp: v }]);
         setNewName(''); setError('');
     };
 
@@ -275,17 +276,18 @@ const ManageCategoriesModal = ({ categories, programs, onApply, onClose }) => {
     );
 };
 
-/* Thẻ Bài Học (Tương thích hoàn hảo máy tính, điện thoại, máy tính bảng) */
-const ProgramCard = ({ p, manage, onOpen, onEdit, onDelete, onMove, index, total }) => {
+/* Thẻ Bài Học (Tương thích hoàn hảo mọi thiết bị, mở tab mới tuyệt đối) */
+const ProgramCard = ({ p, manage, onEdit, onDelete, onMove, index, total }) => {
     const c = PALETTE[p.color] || PALETTE.sky;
     const finalUrl = resolveUrl(p.url);
 
-    const handleClick = () => {
+    const handleClick = (e) => {
         if (manage) {
             onEdit(p);
         } else {
-            // Mở trực tiếp bài học sang tab mới (hoặc cùng tab mượt mà trên mọi thiết bị di động)
-            window.location.href = finalUrl;
+            e.preventDefault();
+            // Buộc mở link bài học sang tab mới bằng window.open giúp mọi máy tính/điện thoại đều mở được mượt mà
+            window.open(finalUrl, '_blank');
         }
     };
 
@@ -338,8 +340,6 @@ const EditModal = ({ initial, categories, onSave, onClose }) => {
         if (!form.url.trim()) { setError('Chưa nhập đường dẫn (link)!'); return; }
         onSave({ ...form, name: form.name.trim(), url: form.url.trim(), desc: (form.desc || '').trim(), category: (form.category || '').trim() });
     };
-
-    const previewColor = PALETTE[form.color] || PALETTE.sky;
 
     return (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto" onClick={onClose}>
@@ -596,7 +596,7 @@ const App = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filtered.map((p, idx) => (
                             <ProgramCard key={p.id} p={p} index={idx} total={filtered.length} manage={manage}
-                                onOpen={() => {}} onEdit={setEditing} onDelete={deleteProgram} onMove={moveProgram} />
+                                onEdit={setEditing} onDelete={deleteProgram} onMove={moveProgram} />
                         ))}
                     </div>
                 )}
