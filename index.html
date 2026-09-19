@@ -2,7 +2,7 @@
 <html lang="vi-VN" translate="no">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="google" content="notranslate">
 <title>🎒 Góc Học Tập - Trung Tâm Bài Giảng</title>
 
@@ -13,11 +13,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
 <style>
-    body { font-family: 'Nunito', sans-serif; background: #f5f3ff; color: #1e293b; }
+    body { font-family: 'Nunito', sans-serif; background: #f5f3ff; color: #1e293b; touch-action: manipulation; }
     .btn-3d { transition: all .1s; border-bottom-width: 4px; }
     .btn-3d:active { transform: translateY(3px); border-bottom-width: 0; }
     .card-hover { transition: transform .18s ease, box-shadow .18s ease; }
-    .card-hover:hover { transform: translateY(-6px); }
+    .card-hover:hover { transform: translateY(-4px); }
     .fade-in { animation: fadeIn .18s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
     .shake { animation: shake .35s ease; }
@@ -28,8 +28,8 @@
         60% { transform: translateX(-5px); }
         80% { transform: translateX(5px); }
     }
-    ::-webkit-scrollbar { width: 10px; height: 10px; }
-    ::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 10px; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 8px; }
 </style>
 </head>
 <body class="min-h-screen">
@@ -38,12 +38,11 @@
 <script type="text/babel">
 const { useState, useEffect, useMemo, useRef } = React;
 
-const STORAGE_KEY = 'hoc_tap_hub_v1';
-const STORAGE_KEY_PASS = 'hoc_tap_hub_pass_v1';
-const STORAGE_KEY_CATS = 'hoc_tap_hub_cats_v1';
+const STORAGE_KEY = 'hoc_tap_hub_v2';
+const STORAGE_KEY_PASS = 'hoc_tap_hub_pass_v2';
+const STORAGE_KEY_CATS = 'hoc_tap_hub_cats_v2';
 const DEFAULT_PASSWORD = '2002';
 
-/* ===== Bảng màu cho từng thẻ bài học ===== */
 const PALETTE = {
     sky:     { bg:'#e0f2fe', border:'#7dd3fc', text:'#075985', solid:'#0ea5e9', name:'Xanh dương' },
     pink:    { bg:'#fce7f3', border:'#f9a8d4', text:'#9d174d', solid:'#ec4899', name:'Hồng' },
@@ -63,19 +62,17 @@ const EMOJI_CHOICES = [
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
-/* Hàm xử lý URL thông minh để hỗ trợ GitHub Pages */
+/* Hàm tự động nhận diện đường dẫn chuẩn tuyệt đối trên GitHub Pages cho mọi thiết bị */
 const resolveUrl = (url) => {
     if (!url) return '#';
-    // Nếu là link tuyệt đối (http, https, blob, data, ...) thì giữ nguyên
     if (/^(https?:\/\/|blob:|data:|mailto:)/i.test(url)) {
         return url;
     }
-    // Nếu là đường dẫn tương đối, lấy base path hiện tại trên GitHub Pages để ghép vào chính xác
+    const cleanUrl = url.startsWith('/') ? url.slice(1) : url;
     const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-    return base + url;
+    return base + cleanUrl;
 };
 
-/* ===== Dữ liệu mặc định ===== */
 const DEFAULT_PROGRAMS = [
     {
         id: uid(),
@@ -105,7 +102,7 @@ const loadPrograms = () => {
         if (!raw) return DEFAULT_PROGRAMS;
         const parsed = JSON.parse(raw);
         if (parsed && Array.isArray(parsed.programs)) return parsed.programs;
-    } catch (e) { console.error('Lỗi đọc dữ liệu:', e); }
+    } catch (e) {}
     return DEFAULT_PROGRAMS;
 };
 
@@ -119,9 +116,7 @@ const loadCategories = () => {
     return DEFAULT_CATEGORIES;
 };
 
-/* =========================================================
-   MODAL NHẬP MẬT KHẨU
-   ========================================================= */
+/* Modal Mật khẩu Quản lý */
 const PasswordModal = ({ correctPassword, onSuccess, onClose }) => {
     const [input, setInput] = useState('');
     const [error, setError] = useState('');
@@ -129,16 +124,14 @@ const PasswordModal = ({ correctPassword, onSuccess, onClose }) => {
     const [showPass, setShowPass] = useState(false);
     const inputRef = useRef(null);
 
-    useEffect(() => {
-        if (inputRef.current) inputRef.current.focus();
-    }, []);
+    useEffect(() => { if (inputRef.current) inputRef.current.focus(); }, []);
 
     const submit = (e) => {
         e.preventDefault();
         if (input === correctPassword) {
             onSuccess();
         } else {
-            setError('❌ Mật khẩu không chính xác! Vui lòng thử lại.');
+            setError('❌ Mật khẩu không chính xác!');
             setShake(true);
             setInput('');
             setTimeout(() => setShake(false), 400);
@@ -147,72 +140,35 @@ const PasswordModal = ({ correctPassword, onSuccess, onClose }) => {
     };
 
     return (
-        <div
-            className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3"
-            onClick={onClose}
-        >
-            <form
-                onSubmit={submit}
-                onClick={(e) => e.stopPropagation()}
-                className={`fade-in bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border-4 border-violet-200 ${shake ? 'shake' : ''}`}
-            >
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3" onClick={onClose}>
+            <form onSubmit={submit} onClick={e => e.stopPropagation()}
+                className={`fade-in bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border-4 border-violet-200 ${shake ? 'shake' : ''}`}>
                 <div className="text-center mb-5">
-                    <div className="text-6xl mb-2">🔐</div>
+                    <div className="text-5xl mb-2">🔐</div>
                     <h2 className="text-2xl font-black text-violet-700">Khu Vực Giáo Viên</h2>
-                    <p className="text-slate-500 font-bold text-sm mt-1">
-                        Nhập mật khẩu để vào chế độ Quản lý
-                    </p>
+                    <p className="text-slate-500 font-bold text-sm mt-1">Nhập mật khẩu để quản lý bài học</p>
                 </div>
-
-                <label className="block font-black text-slate-700 mb-2 text-sm">🔑 Mật khẩu</label>
                 <div className="relative">
-                    <input
-                        ref={inputRef}
-                        type={showPass ? 'text' : 'password'}
-                        value={input}
-                        onChange={(e) => { setInput(e.target.value); setError(''); }}
+                    <input ref={inputRef} type={showPass ? 'text' : 'password'} value={input}
+                        onChange={e => { setInput(e.target.value); setError(''); }}
                         placeholder="Nhập mật khẩu..."
-                        className="w-full p-3 pr-12 border-2 border-slate-300 rounded-xl font-bold text-center tracking-widest focus:border-violet-400 outline-none"
-                    />
-                    <button
-                        type="button"
-                        onClick={() => setShowPass(s => !s)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg hover:bg-slate-100 font-black text-lg"
-                        title={showPass ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                    >
+                        className="w-full p-3.5 pr-12 border-2 border-slate-300 rounded-xl font-bold text-center tracking-widest text-lg outline-none focus:border-violet-500" />
+                    <button type="button" onClick={() => setShowPass(s => !s)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-lg text-lg">
                         {showPass ? '🙈' : '👁️'}
                     </button>
                 </div>
-
-                {error && (
-                    <p className="mt-3 text-red-600 font-bold bg-red-50 border-2 border-red-200 rounded-xl p-3 text-sm text-center">
-                        {error}
-                    </p>
-                )}
-
+                {error && <p className="mt-3 text-red-600 font-bold bg-red-50 border-2 border-red-200 rounded-xl p-3 text-sm text-center">{error}</p>}
                 <div className="flex gap-3 mt-5">
-                    <button
-                        type="submit"
-                        className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-black py-3 rounded-xl btn-3d border-violet-800 text-lg"
-                    >
-                        🔓 Mở khóa
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-6 bg-slate-200 hover:bg-slate-300 text-slate-700 font-black py-3 rounded-xl btn-3d border-slate-400"
-                    >
-                        Hủy
-                    </button>
+                    <button type="submit" className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-black py-3.5 rounded-xl btn-3d border-violet-800 text-lg">🔓 Mở khóa</button>
+                    <button type="button" onClick={onClose} className="px-6 bg-slate-200 hover:bg-slate-300 text-slate-700 font-black py-3.5 rounded-xl btn-3d border-slate-400">Hủy</button>
                 </div>
             </form>
         </div>
     );
 };
 
-/* =========================================================
-   MODAL ĐỔI MẬT KHẨU
-   ========================================================= */
+/* Modal Đổi mật khẩu */
 const ChangePasswordModal = ({ currentPassword, onSave, onClose }) => {
     const [oldPass, setOldPass] = useState('');
     const [newPass, setNewPass] = useState('');
@@ -224,8 +180,7 @@ const ChangePasswordModal = ({ currentPassword, onSave, onClose }) => {
         e.preventDefault();
         setError(''); setSuccess('');
         if (oldPass !== currentPassword) { setError('Mật khẩu hiện tại không đúng!'); return; }
-        if (!newPass.trim()) { setError('Mật khẩu mới không được để trống!'); return; }
-        if (newPass.length < 4) { setError('Mật khẩu mới phải có ít nhất 4 ký tự!'); return; }
+        if (!newPass.trim() || newPass.length < 4) { setError('Mật khẩu mới phải có ít nhất 4 ký tự!'); return; }
         if (newPass !== confirmPass) { setError('Xác nhận mật khẩu không khớp!'); return; }
         onSave(newPass.trim());
         setSuccess('✅ Đổi mật khẩu thành công!');
@@ -233,146 +188,53 @@ const ChangePasswordModal = ({ currentPassword, onSave, onClose }) => {
     };
 
     return (
-        <div
-            className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3"
-            onClick={onClose}
-        >
-            <form
-                onSubmit={submit}
-                onClick={(e) => e.stopPropagation()}
-                className="fade-in bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border-4 border-amber-200"
-            >
-                <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-xl font-black text-amber-700 flex items-center gap-2">
-                        🔑 Đổi mật khẩu Quản lý
-                    </h2>
-                    <button type="button" onClick={onClose}
-                        className="w-9 h-9 rounded-full bg-slate-100 hover:bg-red-100 hover:text-red-600 font-black">
-                        ✕
-                    </button>
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3" onClick={onClose}>
+            <form onSubmit={submit} onClick={e => e.stopPropagation()}
+                className="fade-in bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border-4 border-amber-200">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-black text-amber-700">🔑 Đổi mật khẩu</h2>
+                    <button type="button" onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 font-black">✕</button>
                 </div>
-
                 <div className="space-y-3">
-                    <div>
-                        <label className="block font-black text-slate-700 mb-1 text-sm">Mật khẩu hiện tại</label>
-                        <input
-                            type="password"
-                            value={oldPass}
-                            onChange={(e) => setOldPass(e.target.value)}
-                            placeholder="Nhập mật khẩu đang dùng..."
-                            className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold focus:border-amber-400 outline-none"
-                            autoFocus
-                        />
-                    </div>
-                    <div>
-                        <label className="block font-black text-slate-700 mb-1 text-sm">Mật khẩu mới</label>
-                        <input
-                            type="password"
-                            value={newPass}
-                            onChange={(e) => setNewPass(e.target.value)}
-                            placeholder="Ít nhất 4 ký tự..."
-                            className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold focus:border-amber-400 outline-none"
-                        />
-                    </div>
-                    <div>
-                        <label className="block font-black text-slate-700 mb-1 text-sm">Xác nhận mật khẩu mới</label>
-                        <input
-                            type="password"
-                            value={confirmPass}
-                            onChange={(e) => setConfirmPass(e.target.value)}
-                            placeholder="Nhập lại mật khẩu mới..."
-                            className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold focus:border-amber-400 outline-none"
-                        />
-                    </div>
+                    <input type="password" value={oldPass} onChange={e => setOldPass(e.target.value)} placeholder="Mật khẩu hiện tại" className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold outline-none" autoFocus />
+                    <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Mật khẩu mới (tối thiểu 4 ký tự)" className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold outline-none" />
+                    <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} placeholder="Xác nhận mật khẩu mới" className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold outline-none" />
                 </div>
-
-                {error && (
-                    <p className="mt-3 text-red-600 font-bold bg-red-50 border-2 border-red-200 rounded-xl p-3 text-sm">
-                        ⚠️ {error}
-                    </p>
-                )}
-                {success && (
-                    <p className="mt-3 text-green-700 font-bold bg-green-50 border-2 border-green-200 rounded-xl p-3 text-sm">
-                        {success}
-                    </p>
-                )}
-
+                {error && <p className="mt-3 text-red-600 font-bold bg-red-50 p-2.5 rounded-xl text-sm">⚠️ {error}</p>}
+                {success && <p className="mt-3 text-green-700 font-bold bg-green-50 p-2.5 rounded-xl text-sm">{success}</p>}
                 <div className="flex gap-3 mt-5">
-                    <button
-                        type="submit"
-                        className="flex-1 bg-amber-500 hover:bg-amber-400 text-white font-black py-3 rounded-xl btn-3d border-amber-700 text-lg"
-                    >
-                        💾 Lưu mật khẩu
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-black py-3 rounded-xl btn-3d border-slate-400"
-                    >
-                        Hủy
-                    </button>
+                    <button type="submit" className="flex-1 bg-amber-500 hover:bg-amber-400 text-white font-black py-3 rounded-xl btn-3d border-amber-700">💾 Lưu</button>
+                    <button type="button" onClick={onClose} className="px-5 bg-slate-200 text-slate-700 font-black py-3 rounded-xl btn-3d border-slate-400">Hủy</button>
                 </div>
             </form>
         </div>
     );
 };
 
-/* =========================================================
-   MODAL QUẢN LÝ MÔN HỌC (THÊM / SỬA / XÓA / SẮP XẾP)
-   ========================================================= */
+/* Modal Quản lý Môn học */
 const ManageCategoriesModal = ({ categories, programs, onApply, onClose }) => {
-    const [list, setList] = useState(
-        categories.map(c => ({ originalName: c, name: c, temp: c, editing: false }))
-    );
+    const [list, setList] = useState(categories.map(c => ({ originalName: c, name: c, temp: c, editing: false })));
     const [newName, setNewName] = useState('');
     const [error, setError] = useState('');
 
     const add = () => {
         const v = newName.trim();
-        if (!v) { setError('Vui lòng nhập tên môn!'); return; }
-        if (list.some(x => x.name.toLowerCase() === v.toLowerCase())) { setError('Môn này đã tồn tại!'); return; }
+        if (!v) { setError('Nhập tên môn!'); return; }
+        if (list.some(x => x.name.toLowerCase() === v.toLowerCase())) { setError('Môn đã tồn tại!'); return; }
         setList(prev => [...prev, { originalName: null, name: v, temp: v, editing: false }]);
         setNewName(''); setError('');
     };
 
-    const startEdit = (idx) => setList(prev => prev.map((x, i) => i === idx ? { ...x, editing: true, temp: x.name } : x));
-    const cancelEdit = (idx) => setList(prev => prev.map((x, i) => i === idx ? { ...x, editing: false, temp: x.name } : x));
-    const saveEdit = (idx) => {
-        const item = list[idx];
-        const v = (item.temp || '').trim();
-        if (!v) { setError('Tên không được để trống!'); return; }
-        if (list.some((x, i) => i !== idx && x.name.toLowerCase() === v.toLowerCase())) { setError('Tên môn bị trùng!'); return; }
-        setList(prev => prev.map((x, i) => i === idx ? { ...x, name: v, editing: false } : x));
-        setError('');
-    };
-
     const remove = (idx) => {
         const item = list[idx];
-        const inUse = programs.filter(p => p.category === item.name).length;
-        const msg = inUse > 0
-            ? `Môn "${item.name}" đang có ${inUse} bài học.\nKhi xóa, các bài học này sẽ chuyển về "Chưa phân loại".\n\nTiếp tục?`
-            : `Xóa môn "${item.name}"?`;
-        if (!window.confirm(msg)) return;
+        if (!window.confirm(`Xóa môn "${item.name}"? Bài học thuộc môn này sẽ về "Chưa phân loại".`)) return;
         setList(prev => prev.filter((_, i) => i !== idx));
     };
 
-    const moveItem = (idx, dir) => {
-        const j = idx + dir;
-        if (j < 0 || j >= list.length) return;
-        setList(prev => {
-            const arr = [...prev];
-            [arr[idx], arr[j]] = [arr[j], arr[idx]];
-            return arr;
-        });
-    };
-
     const save = () => {
-        if (list.some(x => x.editing)) { setError('Vui lòng lưu hoặc hủy phần đang sửa!'); return; }
         const renames = [];
         list.forEach(item => {
-            if (item.originalName && item.originalName !== item.name) {
-                renames.push({ from: item.originalName, to: item.name });
-            }
+            if (item.originalName && item.originalName !== item.name) renames.push({ from: item.originalName, to: item.name });
         });
         const currentOriginalNames = list.map(x => x.originalName).filter(Boolean);
         const removedNames = categories.filter(c => !currentOriginalNames.includes(c));
@@ -381,372 +243,180 @@ const ManageCategoriesModal = ({ categories, programs, onApply, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto"
-             onClick={onClose}>
-            <div onClick={e => e.stopPropagation()}
-                className="fade-in bg-white rounded-3xl w-full max-w-lg my-4 p-6 shadow-2xl border-4 border-emerald-200">
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3" onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} className="fade-in bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border-4 border-emerald-200">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-black text-emerald-700 flex items-center gap-2">
-                        📚 Quản lý môn học
-                    </h2>
-                    <button onClick={onClose}
-                        className="w-9 h-9 rounded-full bg-slate-100 hover:bg-red-100 hover:text-red-600 font-black">✕</button>
+                    <h2 className="text-xl font-black text-emerald-700">📚 Quản lý môn học</h2>
+                    <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 font-black">✕</button>
                 </div>
-
-                <p className="text-xs font-bold text-slate-500 mb-3">
-                    Thêm, đổi tên, xóa hoặc sắp xếp thứ tự các môn. Khi xóa, bài học thuộc môn đó sẽ về "Chưa phân loại".
-                </p>
-
-                <div className="space-y-2 mb-4 max-h-72 overflow-y-auto pr-1">
-                    {list.length === 0 && (
-                        <p className="text-center text-sm font-bold text-slate-400 py-4">Chưa có môn nào</p>
-                    )}
-                    {list.map((item, idx) => {
-                        const usedCount = programs.filter(p => p.category === item.name).length;
-                        return (
-                            <div key={idx} className="flex items-center gap-2 p-2 rounded-xl bg-emerald-50 border-2 border-emerald-200">
-                                {item.editing ? (
-                                    <>
-                                        <input value={item.temp}
-                                            onChange={e => setList(prev => prev.map((x, i) => i === idx ? { ...x, temp: e.target.value } : x))}
-                                            className="flex-1 p-2 border-2 border-emerald-400 rounded-lg font-bold text-sm outline-none"
-                                            autoFocus
-                                            onKeyDown={e => { if (e.key === 'Enter') saveEdit(idx); if (e.key === 'Escape') cancelEdit(idx); }} />
-                                        <button onClick={() => saveEdit(idx)}
-                                            className="w-8 h-8 rounded-lg bg-green-500 text-white font-black">✓</button>
-                                        <button onClick={() => cancelEdit(idx)}
-                                            className="w-8 h-8 rounded-lg bg-slate-300 text-slate-700 font-black">✕</button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="flex-1 font-black text-emerald-800 truncate">
-                                            {item.name}
-                                            <span className="ml-1 text-xs text-slate-400 font-bold">({usedCount})</span>
-                                            {item.originalName === null && (
-                                                <span className="ml-1 text-[10px] text-emerald-500 font-black">MỚI</span>
-                                            )}
-                                            {item.originalName && item.originalName !== item.name && (
-                                                <span className="ml-1 text-[10px] text-amber-600 font-black">ĐÃ SỬA</span>
-                                            )}
-                                        </span>
-                                        <button onClick={() => moveItem(idx, -1)} disabled={idx === 0}
-                                            className={`w-7 h-7 rounded-lg bg-white border-2 border-slate-200 font-black text-xs ${idx === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}>▲</button>
-                                        <button onClick={() => moveItem(idx, 1)} disabled={idx === list.length - 1}
-                                            className={`w-7 h-7 rounded-lg bg-white border-2 border-slate-200 font-black text-xs ${idx === list.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}>▼</button>
-                                        <button onClick={() => startEdit(idx)} title="Đổi tên"
-                                            className="w-7 h-7 rounded-lg bg-amber-400 text-white font-black text-xs">✏️</button>
-                                        <button onClick={() => remove(idx)} title="Xóa môn"
-                                            className="w-7 h-7 rounded-lg bg-red-500 text-white font-black text-xs">🗑</button>
-                                    </>
-                                )}
-                            </div>
-                        );
-                    })}
+                <div className="space-y-2 mb-4 max-h-60 overflow-y-auto pr-1">
+                    {list.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-2 p-2 rounded-xl bg-emerald-50 border-2 border-emerald-200">
+                            <input value={item.temp} onChange={e => {
+                                const val = e.target.value;
+                                setList(prev => prev.map((x, i) => i === idx ? { ...x, temp: val, name: val } : x));
+                            }} className="flex-1 p-2 border-2 border-emerald-300 rounded-lg font-bold text-sm outline-none bg-white" />
+                            <button onClick={() => remove(idx)} className="w-8 h-8 rounded-lg bg-red-500 text-white font-black text-xs">🗑</button>
+                        </div>
+                    ))}
                 </div>
-
-                <div className="flex gap-2 mb-2">
-                    <input value={newName}
-                        onChange={e => { setNewName(e.target.value); setError(''); }}
-                        placeholder="Nhập tên môn mới..."
-                        className="flex-1 p-2.5 border-2 border-slate-300 rounded-xl font-bold text-sm focus:border-emerald-400 outline-none"
-                        onKeyDown={e => { if (e.key === 'Enter') add(); }} />
-                    <button onClick={add}
-                        className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm btn-3d border-emerald-700">
-                        ➕ Thêm
-                    </button>
+                <div className="flex gap-2 mb-3">
+                    <input value={newName} onChange={e => { setNewName(e.target.value); setError(''); }} placeholder="Tên môn mới..."
+                        className="flex-1 p-2.5 border-2 border-slate-300 rounded-xl font-bold text-sm outline-none" onKeyDown={e => { if (e.key === 'Enter') add(); }} />
+                    <button onClick={add} className="px-4 py-2 bg-emerald-500 text-white font-black rounded-xl btn-3d border-emerald-700 text-sm">➕ Thêm</button>
                 </div>
-
                 {error && <p className="text-red-600 font-bold text-xs mb-2">⚠️ {error}</p>}
-
-                <div className="flex gap-2 mt-4">
-                    <button onClick={save}
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl btn-3d border-emerald-800">
-                        💾 Lưu thay đổi
-                    </button>
-                    <button onClick={onClose}
-                        className="px-5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-black py-3 rounded-xl btn-3d border-slate-400">
-                        Hủy
-                    </button>
+                <div className="flex gap-3 mt-4">
+                    <button onClick={save} className="flex-1 bg-emerald-600 text-white font-black py-3 rounded-xl btn-3d border-emerald-800">💾 Lưu thay đổi</button>
+                    <button onClick={onClose} className="px-5 bg-slate-200 text-slate-700 font-black py-3 rounded-xl btn-3d border-slate-400">Hủy</button>
                 </div>
             </div>
         </div>
     );
 };
 
-/* =========================================================
-   THẺ BÀI HỌC
-   ========================================================= */
+/* Thẻ Bài Học (Tương thích hoàn hảo máy tính, điện thoại, máy tính bảng) */
 const ProgramCard = ({ p, manage, onOpen, onEdit, onDelete, onMove, index, total }) => {
     const c = PALETTE[p.color] || PALETTE.sky;
     const finalUrl = resolveUrl(p.url);
 
     const handleClick = () => {
-        if (manage) onEdit(p);
-        else onOpen(p);
+        if (manage) {
+            onEdit(p);
+        } else {
+            // Mở trực tiếp bài học sang tab mới (hoặc cùng tab mượt mà trên mọi thiết bị di động)
+            window.location.href = finalUrl;
+        }
     };
 
     return (
-        <div
-            onClick={handleClick}
-            className="card-hover relative rounded-3xl p-5 flex flex-col cursor-pointer select-none"
-            style={{
-                background: c.bg,
-                border: `4px solid ${c.border}`,
-                boxShadow: `0 12px 28px -14px ${c.solid}`
-            }}
-        >
+        <div onClick={handleClick}
+            className="card-hover relative rounded-3xl p-5 flex flex-col cursor-pointer select-none active:scale-95"
+            style={{ background: c.bg, border: `4px solid ${c.border}`, boxShadow: `0 10px 25px -12px ${c.solid}` }}>
+            
             {!manage && (
-                <a
-                    href={finalUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    title="Mở trong tab mới"
-                    className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 hover:bg-white flex items-center justify-center font-black text-slate-500 hover:text-slate-800 transition"
-                    style={{ border: `2px solid ${c.border}` }}
-                >
+                <a href={finalUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="Mở tab mới"
+                    className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center font-black text-slate-600 hover:bg-white shadow-sm"
+                    style={{ border: `2px solid ${c.border}` }}>
                     ⧉
                 </a>
             )}
 
             {manage && (
-                <div className="absolute top-3 right-3 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
-                    <button
-                        onClick={() => onMove(p.id, -1)}
-                        disabled={index === 0}
-                        title="Di chuyển lên"
-                        className={`w-8 h-8 rounded-lg bg-white font-black text-slate-600 border-2 border-slate-200 hover:bg-slate-50 ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
-                    >▲</button>
-                    <button
-                        onClick={() => onMove(p.id, 1)}
-                        disabled={index === total - 1}
-                        title="Di chuyển xuống"
-                        className={`w-8 h-8 rounded-lg bg-white font-black text-slate-600 border-2 border-slate-200 hover:bg-slate-50 ${index === total - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
-                    >▼</button>
-                    <button
-                        onClick={() => onDelete(p)}
-                        title="Xóa bài học"
-                        className="w-8 h-8 rounded-lg bg-red-500 text-white font-black border-2 border-red-700 hover:bg-red-400"
-                    >🗑</button>
+                <div className="absolute top-3 right-3 flex gap-1" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => onMove(p.id, -1)} disabled={index === 0} className={`w-8 h-8 rounded-lg bg-white font-black border-2 border-slate-200 ${index === 0 ? 'opacity-30' : ''}`}>▲</button>
+                    <button onClick={() => onMove(p.id, 1)} disabled={index === total - 1} className={`w-8 h-8 rounded-lg bg-white font-black border-2 border-slate-200 ${index === total - 1 ? 'opacity-30' : ''}`}>▼</button>
+                    <button onClick={() => onDelete(p)} className="w-8 h-8 rounded-lg bg-red-500 text-white font-black border-2 border-red-700">🗑</button>
                 </div>
             )}
 
             <div className="text-5xl mb-3 leading-none">{p.icon || '📘'}</div>
-
-            <h3 className="text-xl font-black leading-tight pr-10" style={{ color: c.text }}>
-                {p.name}
-            </h3>
-
-            {p.desc && (
-                <p className="text-sm font-semibold text-slate-600 mt-2 flex-1 leading-snug">
-                    {p.desc}
-                </p>
-            )}
-
+            <h3 className="text-xl font-black leading-tight pr-10" style={{ color: c.text }}>{p.name}</h3>
+            {p.desc && <p className="text-sm font-semibold text-slate-600 mt-2 flex-1 leading-snug">{p.desc}</p>}
+            
             <div className="flex items-center gap-2 mt-4 flex-wrap">
                 {p.category && (
-                    <span
-                        className="text-xs font-black px-2.5 py-1 rounded-full bg-white/80"
-                        style={{ color: c.text, border: `2px solid ${c.border}` }}
-                    >
+                    <span className="text-xs font-black px-2.5 py-1 rounded-full bg-white/90" style={{ color: c.text, border: `2px solid ${c.border}` }}>
                         {p.category}
                     </span>
                 )}
-                {manage && (
-                    <span className="text-xs font-black px-2.5 py-1 rounded-full bg-white/80 text-slate-500 border-2 border-slate-200">
-                        ✏️ Bấm để sửa
-                    </span>
-                )}
+                {manage && <span className="text-xs font-black px-2 py-1 rounded-full bg-white text-slate-500 border-2 border-slate-200">✏️ Chạm để sửa</span>}
             </div>
         </div>
     );
 };
 
-/* =========================================================
-   MODAL THÊM / SỬA BÀI HỌC
-   ========================================================= */
+/* Modal Thêm/Sửa Bài học */
 const EditModal = ({ initial, categories, onSave, onClose }) => {
     const [form, setForm] = useState(initial);
     const [error, setError] = useState('');
-
     const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
     const submit = (e) => {
         e.preventDefault();
-        if (!form.name.trim()) { setError('Bé chưa nhập tên bài học!'); return; }
-        if (!form.url.trim()) { setError('Bé chưa nhập đường dẫn (link)!'); return; }
+        if (!form.name.trim()) { setError('Chưa nhập tên bài học!'); return; }
+        if (!form.url.trim()) { setError('Chưa nhập đường dẫn (link)!'); return; }
         onSave({ ...form, name: form.name.trim(), url: form.url.trim(), desc: (form.desc || '').trim(), category: (form.category || '').trim() });
     };
 
     const previewColor = PALETTE[form.color] || PALETTE.sky;
 
     return (
-        <div
-            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 overflow-y-auto"
-            onClick={onClose}
-        >
-            <form
-                onSubmit={submit}
-                onClick={(e) => e.stopPropagation()}
-                className="fade-in bg-white rounded-3xl w-full max-w-xl my-4 p-6 shadow-2xl border-4 border-violet-200"
-            >
-                <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-2xl font-black text-violet-700">
-                        {initial._isNew ? '➕ Thêm bài học mới' : '✏️ Sửa bài học'}
-                    </h2>
-                    <button type="button" onClick={onClose}
-                        className="w-10 h-10 rounded-full bg-slate-100 hover:bg-red-100 hover:text-red-600 font-black text-xl">
-                        ✕
-                    </button>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto" onClick={onClose}>
+            <form onSubmit={submit} onClick={e => e.stopPropagation()}
+                className="fade-in bg-white rounded-3xl w-full max-w-lg my-4 p-6 shadow-2xl border-4 border-violet-200 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-black text-violet-700">{initial._isNew ? '➕ Thêm bài học mới' : '✏️ Sửa bài học'}</h2>
+                    <button type="button" onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 font-black">✕</button>
                 </div>
-
-                <div className="rounded-2xl p-4 mb-5 flex items-center gap-4"
-                     style={{ background: previewColor.bg, border: `3px solid ${previewColor.border}` }}>
-                    <div className="text-4xl">{form.icon || '📘'}</div>
-                    <div className="min-w-0">
-                        <div className="font-black truncate" style={{ color: previewColor.text }}>
-                            {form.name || 'Tên bài học...'}
-                        </div>
-                        <div className="text-xs font-bold text-slate-500 truncate">{form.url || 'đường-dẫn.html'}</div>
-                    </div>
-                </div>
-
-                <div className="space-y-4">
+                
+                <div className="space-y-3.5">
                     <div>
                         <label className="block font-black text-slate-700 mb-1 text-sm">📝 Tên bài học *</label>
-                        <input
-                            value={form.name}
-                            onChange={(e) => set('name', e.target.value)}
-                            placeholder="Ví dụ: Tiếng Việt 1 - Tuần 3"
-                            className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold focus:border-violet-400 outline-none"
-                            autoFocus
-                        />
+                        <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ví dụ: Tiếng Việt 1 - Tuần 3"
+                            className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold outline-none focus:border-violet-500" autoFocus />
                     </div>
-
                     <div>
-                        <label className="block font-black text-slate-700 mb-1 text-sm">🔗 Đường dẫn / Link *</label>
-                        <input
-                            value={form.url}
-                            onChange={(e) => set('url', e.target.value)}
-                            placeholder="tapdoc_tiengviet.html  hoặc  https://..."
-                            className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold focus:border-violet-400 outline-none"
-                        />
-                        <p className="text-xs text-slate-500 font-bold mt-1">
-                            💡 File cùng thư mục trên GitHub thì chỉ ghi tên file. Link ngoài thì dán đầy đủ https://...
-                        </p>
+                        <label className="block font-black text-slate-700 mb-1 text-sm">🔗 Đường dẫn file (Link) *</label>
+                        <input value={form.url} onChange={e => set('url', e.target.value)} placeholder="tapdoc_tiengviet.html hoặc https://..."
+                            className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold outline-none focus:border-violet-500" />
+                        <p className="text-xs text-slate-500 font-bold mt-1">💡 File cùng kho GitHub chỉ cần ghi đúng tên file (ví dụ: `toan.html`).</p>
                     </div>
-
                     <div>
                         <label className="block font-black text-slate-700 mb-1 text-sm">💬 Mô tả ngắn</label>
-                        <textarea
-                            value={form.desc}
-                            onChange={(e) => set('desc', e.target.value)}
-                            rows="2"
-                            placeholder="Ví dụ: Đánh vần, đọc từ, đọc câu..."
-                            className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold focus:border-violet-400 outline-none resize-none"
-                        />
+                        <textarea value={form.desc} onChange={e => set('desc', e.target.value)} rows="2" placeholder="Mô tả bài học..."
+                            className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold outline-none resize-none" />
                     </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label className="block font-black text-slate-700 mb-1 text-sm">🏷️ Nhóm / Môn học</label>
-                            <input
-                                value={form.category}
-                                onChange={(e) => set('category', e.target.value)}
-                                list="cat-list"
-                                placeholder="Tiếng Việt, Toán, Tiếng Anh..."
-                                className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold focus:border-violet-400 outline-none"
-                            />
-                            <datalist id="cat-list">
-                                {categories.map(c => <option key={c} value={c} />)}
-                            </datalist>
+                            <label className="block font-black text-slate-700 mb-1 text-sm">🏷️ Nhóm / Môn</label>
+                            <input value={form.category} onChange={e => set('category', e.target.value)} list="cat-list" placeholder="Tiếng Việt, Toán..."
+                                className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold outline-none" />
+                            <datalist id="cat-list">{categories.map(c => <option key={c} value={c} />)}</datalist>
                         </div>
-
                         <div>
                             <label className="block font-black text-slate-700 mb-1 text-sm">😀 Biểu tượng</label>
-                            <input
-                                value={form.icon}
-                                onChange={(e) => set('icon', e.target.value)}
-                                placeholder="🎒"
-                                className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold text-center text-2xl focus:border-violet-400 outline-none"
-                            />
+                            <input value={form.icon} onChange={e => set('icon', e.target.value)} placeholder="🎒"
+                                className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold text-center text-xl outline-none" />
                         </div>
                     </div>
-
-                    <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-xl border-2 border-slate-200">
+                    <div className="flex flex-wrap gap-1 p-2 bg-slate-50 rounded-xl border-2 border-slate-200">
                         {EMOJI_CHOICES.map(e => (
-                            <button
-                                key={e}
-                                type="button"
-                                onClick={() => set('icon', e)}
-                                className={`w-9 h-9 text-xl rounded-lg hover:bg-violet-100 transition ${form.icon === e ? 'bg-violet-200 ring-2 ring-violet-400' : ''}`}
-                            >
-                                {e}
-                            </button>
+                            <button key={e} type="button" onClick={() => set('icon', e)}
+                                className={`w-8 h-8 text-lg rounded-lg hover:bg-violet-100 ${form.icon === e ? 'bg-violet-200 ring-2 ring-violet-400' : ''}`}>{e}</button>
                         ))}
                     </div>
-
                     <div>
                         <label className="block font-black text-slate-700 mb-2 text-sm">🎨 Màu thẻ</label>
                         <div className="flex flex-wrap gap-2">
                             {COLOR_KEYS.map(k => {
                                 const c = PALETTE[k];
                                 return (
-                                    <button
-                                        key={k}
-                                        type="button"
-                                        onClick={() => set('color', k)}
-                                        title={c.name}
-                                        className="w-10 h-10 rounded-xl transition"
-                                        style={{
-                                            background: c.bg,
-                                            border: `4px solid ${c.border}`,
-                                            transform: form.color === k ? 'scale(1.12)' : 'none',
-                                            boxShadow: form.color === k ? `0 0 0 3px ${c.solid}` : 'none'
-                                        }}
-                                    />
+                                    <button key={k} type="button" onClick={() => set('color', k)} title={c.name}
+                                        className="w-9 h-9 rounded-xl transition"
+                                        style={{ background: c.bg, border: `3px solid ${c.border}`, transform: form.color === k ? 'scale(1.15)' : 'none' }} />
                                 );
                             })}
                         </div>
                     </div>
                 </div>
 
-                {error && (
-                    <p className="mt-4 text-red-600 font-bold bg-red-50 border-2 border-red-200 rounded-xl p-3 text-sm">
-                        ⚠️ {error}
-                    </p>
-                )}
+                {error && <p className="mt-3 text-red-600 font-bold bg-red-50 p-2.5 rounded-xl text-sm">⚠️ {error}</p>}
 
-                <div className="flex gap-3 mt-6">
-                    <button
-                        type="submit"
-                        className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-black py-3 rounded-xl btn-3d border-violet-800 text-lg"
-                    >
-                        💾 Lưu lại
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-6 bg-slate-200 hover:bg-slate-300 text-slate-700 font-black py-3 rounded-xl btn-3d border-slate-400"
-                    >
-                        Hủy
-                    </button>
+                <div className="flex gap-3 mt-5">
+                    <button type="submit" className="flex-1 bg-violet-600 text-white font-black py-3 rounded-xl btn-3d border-violet-800 text-lg">💾 Lưu lại</button>
+                    <button type="button" onClick={onClose} className="px-5 bg-slate-200 text-slate-700 font-black py-3 rounded-xl btn-3d border-slate-400">Hủy</button>
                 </div>
             </form>
         </div>
     );
 };
 
-/* =========================================================
-   APP CHÍNH
-   ========================================================= */
+/* Ứng dụng Chính */
 const App = () => {
     const [programs, setPrograms] = useState(loadPrograms);
     const [customCats, setCustomCats] = useState(loadCategories);
-
-    const [password, setPassword] = useState(() => {
-        return localStorage.getItem(STORAGE_KEY_PASS) || DEFAULT_PASSWORD;
-    });
+    const [password, setPassword] = useState(() => localStorage.getItem(STORAGE_KEY_PASS) || DEFAULT_PASSWORD);
 
     const [manage, setManage] = useState(false);
     const [showPassModal, setShowPassModal] = useState(false);
@@ -756,34 +426,19 @@ const App = () => {
     const [search, setSearch] = useState('');
     const [activeCat, setActiveCat] = useState('Tất cả');
     const [editing, setEditing] = useState(null);
-    const [viewer, setViewer] = useState(null);
     const fileInputRef = useRef(null);
 
     useEffect(() => {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ programs })); }
-        catch (e) { console.error('Lỗi lưu dữ liệu:', e); }
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ programs })); } catch (e) {}
     }, [programs]);
 
     useEffect(() => {
-        try { localStorage.setItem(STORAGE_KEY_PASS, password); }
-        catch (e) { console.error('Lỗi lưu mật khẩu:', e); }
+        try { localStorage.setItem(STORAGE_KEY_PASS, password); } catch (e) {}
     }, [password]);
 
     useEffect(() => {
-        try { localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(customCats)); }
-        catch (e) {}
+        try { localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(customCats)); } catch (e) {}
     }, [customCats]);
-
-    useEffect(() => {
-        const onKey = (e) => {
-            if (e.key === 'Escape') {
-                setEditing(null); setViewer(null);
-                setShowPassModal(false); setShowChangePass(false); setShowManageCats(false);
-            }
-        };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    }, []);
 
     const categories = useMemo(() => {
         const set = new Set([...customCats]);
@@ -797,40 +452,21 @@ const App = () => {
             const okCat = activeCat === 'Tất cả' || (p.category || '') === activeCat;
             if (!okCat) return false;
             if (!kw) return true;
-            return (p.name || '').toLowerCase().includes(kw)
-                || (p.desc || '').toLowerCase().includes(kw)
-                || (p.url || '').toLowerCase().includes(kw)
-                || (p.category || '').toLowerCase().includes(kw);
+            return (p.name || '').toLowerCase().includes(kw) || (p.desc || '').toLowerCase().includes(kw);
         });
     }, [programs, search, activeCat]);
 
     const countByCat = useMemo(() => {
         const map = {};
-        programs.forEach(p => {
-            const c = p.category || '';
-            map[c] = (map[c] || 0) + 1;
-        });
+        programs.forEach(p => { const c = p.category || ''; map[c] = (map[c] || 0) + 1; });
         return map;
     }, [programs]);
 
     const handleToggleManage = () => {
-        if (manage) {
-            setManage(false);
-        } else {
-            setShowPassModal(true);
-        }
+        if (manage) setManage(false);
+        else setShowPassModal(true);
     };
 
-    const handlePasswordSuccess = () => {
-        setShowPassModal(false);
-        setManage(true);
-    };
-
-    const handleChangePassword = (newPass) => {
-        setPassword(newPass);
-    };
-
-    /* Áp dụng thay đổi môn học */
     const applyCategories = (newCats, renames, removedNames) => {
         setCustomCats(newCats);
         setPrograms(prev => prev.map(p => {
@@ -843,17 +479,10 @@ const App = () => {
     };
 
     const openAdd = () => setEditing({
-        _isNew: true,
-        id: uid(),
-        name: '',
-        desc: '',
-        url: '',
-        icon: '📘',
+        _isNew: true, id: uid(), name: '', desc: '', url: '', icon: '📘',
         color: COLOR_KEYS[Math.floor(Math.random() * COLOR_KEYS.length)],
         category: activeCat !== 'Tất cả' ? activeCat : ''
     });
-
-    const openEdit = (p) => setEditing({ ...p });
 
     const saveProgram = (form) => {
         const { _isNew, ...clean } = form;
@@ -862,16 +491,12 @@ const App = () => {
             if (exists) return prev.map(p => p.id === clean.id ? clean : p);
             return [...prev, clean];
         });
-        if (clean.category && !customCats.includes(clean.category)) {
-            setCustomCats(prev => [...prev, clean.category]);
-        }
+        if (clean.category && !customCats.includes(clean.category)) setCustomCats(prev => [...prev, clean.category]);
         setEditing(null);
     };
 
     const deleteProgram = (p) => {
-        if (window.confirm(`Bạn có chắc muốn xóa bài học "${p.name}" không?`)) {
-            setPrograms(prev => prev.filter(x => x.id !== p.id));
-        }
+        if (window.confirm(`Xóa bài học "${p.name}"?`)) setPrograms(prev => prev.filter(x => x.id !== p.id));
     };
 
     const moveProgram = (id, dir) => {
@@ -888,10 +513,7 @@ const App = () => {
     const exportData = () => {
         const blob = new Blob([JSON.stringify({ programs, customCats }, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'goc-hoc-tap.json';
-        a.click();
+        const a = document.createElement('a'); a.href = url; a.download = 'goc-hoc-tap.json'; a.click();
         URL.revokeObjectURL(url);
     };
 
@@ -904,257 +526,86 @@ const App = () => {
                 const parsed = JSON.parse(ev.target.result);
                 const list = Array.isArray(parsed) ? parsed : parsed.programs;
                 if (Array.isArray(list) && list.length) {
-                    if (window.confirm(`Nhập ${list.length} bài học từ file? Dữ liệu hiện tại sẽ bị thay thế.`)) {
+                    if (window.confirm(`Nhập ${list.length} bài học?`)) {
                         setPrograms(list.map(x => ({ ...x, id: x.id || uid() })));
-                        if (parsed.customCats && Array.isArray(parsed.customCats)) {
-                            setCustomCats(parsed.customCats);
-                        }
-                        alert('✅ Nhập dữ liệu thành công!');
+                        if (parsed.customCats && Array.isArray(parsed.customCats)) setCustomCats(parsed.customCats);
+                        alert('✅ Thành công!');
                     }
-                } else {
-                    alert('⚠️ File không hợp lệ!');
                 }
-            } catch (err) {
-                alert('⚠️ File không hợp lệ!');
-            }
+            } catch (err) { alert('⚠️ File không hợp lệ!'); }
         };
         reader.readAsText(file);
         e.target.value = '';
     };
 
-    const resetDefault = () => {
-        if (window.confirm('Khôi phục danh sách bài học mặc định ban đầu?')) {
-            setPrograms(DEFAULT_PROGRAMS.map(p => ({ ...p, id: uid() })));
-            setCustomCats(DEFAULT_CATEGORIES);
-        }
-    };
-
-    const openProgram = (p) => setViewer(p);
-
     return (
         <div className="min-h-screen pb-16">
-
             <header className="bg-white border-b-4 border-violet-200 shadow-sm sticky top-0 z-30">
-                <div className="max-w-6xl mx-auto px-3 sm:px-6 py-3 flex flex-wrap items-center gap-3">
+                <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
                     <h1 className="text-xl sm:text-2xl font-black text-violet-700 flex items-center gap-2 mr-auto">
-                        <span className="text-3xl">🎒</span> Góc Học Tập
+                        <span>🎒</span> Góc Học Tập
                     </h1>
 
                     <div className="relative order-3 sm:order-2 w-full sm:w-64">
-                        <input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="🔍 Tìm bài học..."
-                            className="w-full pl-4 pr-9 py-2.5 border-2 border-violet-200 rounded-xl font-bold text-sm focus:border-violet-400 outline-none bg-violet-50/50"
-                        />
-                        {search && (
-                            <button
-                                onClick={() => setSearch('')}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 hover:bg-red-200 font-black text-xs"
-                            >✕</button>
-                        )}
+                        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Tìm bài học..."
+                            className="w-full pl-4 pr-9 py-2.5 border-2 border-violet-200 rounded-xl font-bold text-sm outline-none bg-violet-50/50 focus:border-violet-400" />
+                        {search && <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-black">✕</button>}
                     </div>
 
-                    <button
-                        onClick={handleToggleManage}
-                        className={`order-2 sm:order-3 px-4 py-2.5 rounded-xl font-black text-sm btn-3d text-white ${manage ? 'bg-red-500 border-red-700 hover:bg-red-400' : 'bg-slate-700 border-slate-900 hover:bg-slate-600'}`}
-                    >
+                    <button onClick={handleToggleManage}
+                        className={`order-2 sm:order-3 px-4 py-2.5 rounded-xl font-black text-sm btn-3d text-white ${manage ? 'bg-red-500 border-red-700' : 'bg-slate-700 border-slate-900'}`}>
                         {manage ? '✅ Xong' : '🔒 Quản lý'}
                     </button>
                 </div>
 
-                {categories.length > 0 && (
-                    <div className="max-w-6xl mx-auto px-3 sm:px-6 pb-3 flex flex-wrap gap-2 items-center">
-                        <button
-                            onClick={() => setActiveCat('Tất cả')}
-                            className={`px-3.5 py-1.5 rounded-full font-black text-xs btn-3d transition ${
-                                activeCat === 'Tất cả'
-                                    ? 'bg-violet-600 text-white border-violet-800'
-                                    : 'bg-violet-100 text-violet-700 border-violet-300 hover:bg-violet-200'
-                            }`}
-                        >
-                            Tất cả ({programs.length})
+                <div className="max-w-6xl mx-auto px-4 pb-3 flex flex-wrap gap-2 items-center">
+                    <button onClick={() => setActiveCat('Tất cả')}
+                        className={`px-3.5 py-1.5 rounded-full font-black text-xs btn-3d ${activeCat === 'Tất cả' ? 'bg-violet-600 text-white border-violet-800' : 'bg-violet-100 text-violet-700 border-violet-300'}`}>
+                        Tất cả ({programs.length})
+                    </button>
+                    {categories.map(cat => (
+                        <button key={cat} onClick={() => setActiveCat(cat)}
+                            className={`px-3.5 py-1.5 rounded-full font-black text-xs btn-3d ${activeCat === cat ? 'bg-violet-600 text-white border-violet-800' : 'bg-violet-100 text-violet-700 border-violet-300'}`}>
+                            {cat} {countByCat[cat] ? `(${countByCat[cat]})` : ''}
                         </button>
-
-                        {categories.map(cat => (
-                            <button
-                                key={cat}
-                                onClick={() => setActiveCat(cat)}
-                                className={`px-3.5 py-1.5 rounded-full font-black text-xs btn-3d transition ${
-                                    activeCat === cat
-                                        ? 'bg-violet-600 text-white border-violet-800'
-                                        : 'bg-violet-100 text-violet-700 border-violet-300 hover:bg-violet-200'
-                                }`}
-                            >
-                                {cat} {countByCat[cat] ? `(${countByCat[cat]})` : ''}
-                            </button>
-                        ))}
-
-                        {manage && (
-                            <button
-                                onClick={() => setShowManageCats(true)}
-                                title="Quản lý môn học"
-                                className="px-3 py-1.5 rounded-full font-black text-xs btn-3d bg-emerald-500 text-white border-emerald-700 hover:bg-emerald-400"
-                            >
-                                ➕ Thêm môn
-                            </button>
-                        )}
-                    </div>
-                )}
+                    ))}
+                </div>
             </header>
 
             {manage && (
-                <div className="max-w-6xl mx-auto px-3 sm:px-6 mt-5">
+                <div className="max-w-6xl mx-auto px-4 mt-4">
                     <div className="fade-in bg-amber-50 border-4 border-amber-200 rounded-3xl p-4 flex flex-wrap items-center gap-2">
-                        <span className="font-black text-amber-800 mr-auto text-sm">
-                            🔧 Chế độ Quản lý: bấm vào thẻ để sửa, dùng ▲▼ để sắp xếp, 🗑 để xóa.
-                        </span>
-                        <button onClick={openAdd}
-                            className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black text-sm btn-3d border-violet-800">
-                            ➕ Thêm bài học
-                        </button>
-                        <button onClick={() => setShowManageCats(true)}
-                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm btn-3d border-emerald-800">
-                            📚 Quản lý môn học
-                        </button>
-                        <button onClick={exportData}
-                            className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-black text-sm btn-3d border-sky-800">
-                            ⬇️ Xuất file
-                        </button>
-                        <button onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                            className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-black text-sm btn-3d border-teal-800">
-                            ⬆️ Nhập file
-                        </button>
-                        <button onClick={() => setShowChangePass(true)}
-                            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-black text-sm btn-3d border-amber-700">
-                            🔑 Đổi mật khẩu
-                        </button>
-                        <button onClick={resetDefault}
-                            className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-black text-sm btn-3d border-slate-400">
-                            🔄 Mặc định
-                        </button>
-                        <input ref={fileInputRef} type="file" accept=".json,application/json"
-                               onChange={importData} className="hidden" />
+                        <span className="font-black text-amber-800 mr-auto text-xs sm:text-sm">🔧 Chế độ Quản lý đang bật.</span>
+                        <button onClick={openAdd} className="px-3.5 py-2 bg-violet-600 text-white font-black rounded-xl text-xs sm:text-sm btn-3d border-violet-800">➕ Thêm bài</button>
+                        <button onClick={() => setShowManageCats(true)} className="px-3.5 py-2 bg-emerald-600 text-white font-black rounded-xl text-xs sm:text-sm btn-3d border-emerald-800">📚 Quản lý môn</button>
+                        <button onClick={exportData} className="px-3.5 py-2 bg-sky-600 text-white font-black rounded-xl text-xs sm:text-sm btn-3d border-sky-800">⬇️ Xuất</button>
+                        <button onClick={() => fileInputRef.current && fileInputRef.current.click()} className="px-3.5 py-2 bg-teal-600 text-white font-black rounded-xl text-xs sm:text-sm btn-3d border-teal-800">⬆️ Nhập</button>
+                        <button onClick={() => setShowChangePass(true)} className="px-3.5 py-2 bg-amber-500 text-white font-black rounded-xl text-xs sm:text-sm btn-3d border-amber-700">🔑 Đổi mật khẩu</button>
+                        <input ref={fileInputRef} type="file" accept=".json" onChange={importData} className="hidden" />
                     </div>
                 </div>
             )}
 
-            <main className="max-w-6xl mx-auto px-3 sm:px-6 mt-6">
+            <main className="max-w-6xl mx-auto px-4 mt-6">
                 {filtered.length === 0 ? (
-                    <div className="text-center py-20">
-                        <div className="text-7xl mb-4">🔍</div>
-                        <p className="text-xl font-black text-slate-500">
-                            {programs.length === 0 ? 'Chưa có bài học nào!' : 'Không tìm thấy bài học phù hợp.'}
-                        </p>
-                        {manage && (
-                            <button onClick={openAdd}
-                                className="mt-5 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black btn-3d border-violet-800">
-                                ➕ Thêm bài học đầu tiên
-                            </button>
-                        )}
+                    <div className="text-center py-16">
+                        <div className="text-6xl mb-3">🔍</div>
+                        <p className="text-lg font-black text-slate-500">Không tìm thấy bài học nào.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filtered.map((p, idx) => (
-                            <ProgramCard
-                                key={p.id}
-                                p={p}
-                                index={idx}
-                                total={filtered.length}
-                                manage={manage}
-                                onOpen={openProgram}
-                                onEdit={openEdit}
-                                onDelete={deleteProgram}
-                                onMove={moveProgram}
-                            />
+                            <ProgramCard key={p.id} p={p} index={idx} total={filtered.length} manage={manage}
+                                onOpen={() => {}} onEdit={setEditing} onDelete={deleteProgram} onMove={moveProgram} />
                         ))}
-
-                        {manage && (
-                            <button
-                                onClick={openAdd}
-                                className="card-hover rounded-3xl border-4 border-dashed border-violet-300 bg-violet-50/60 hover:bg-violet-100 flex flex-col items-center justify-center p-6 min-h-[190px] text-violet-500"
-                            >
-                                <div className="text-5xl mb-2">➕</div>
-                                <div className="font-black">Thêm bài học</div>
-                                <div className="text-xs font-bold text-violet-400 mt-1">Bấm để tạo thẻ mới</div>
-                            </button>
-                        )}
                     </div>
                 )}
-
-                <p className="text-center text-xs font-bold text-slate-400 mt-10">
-                    💾 Mọi thay đổi được lưu tự động trên trình duyệt này ·
-                    Tổng số bài học: {programs.length} · Số môn: {categories.length}
-                </p>
             </main>
 
-            {showPassModal && (
-                <PasswordModal
-                    correctPassword={password}
-                    onSuccess={handlePasswordSuccess}
-                    onClose={() => setShowPassModal(false)}
-                />
-            )}
-
-            {showChangePass && (
-                <ChangePasswordModal
-                    currentPassword={password}
-                    onSave={handleChangePassword}
-                    onClose={() => setShowChangePass(false)}
-                />
-            )}
-
-            {showManageCats && (
-                <ManageCategoriesModal
-                    categories={categories}
-                    programs={programs}
-                    onApply={applyCategories}
-                    onClose={() => setShowManageCats(false)}
-                />
-            )}
-
-            {editing && (
-                <EditModal
-                    initial={editing}
-                    categories={categories}
-                    onSave={saveProgram}
-                    onClose={() => setEditing(null)}
-                />
-            )}
-
-            {viewer && (
-                <div className="fixed inset-0 z-40 bg-slate-900/95 flex flex-col fade-in">
-                    <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-slate-800 text-white shrink-0">
-                        <div className="font-black flex items-center gap-2 min-w-0">
-                            <span className="text-2xl">{viewer.icon}</span>
-                            <span className="truncate">{viewer.name}</span>
-                        </div>
-                        <div className="flex gap-2 shrink-0">
-                            <a
-                                href={resolveUrl(viewer.url)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 font-black text-xs sm:text-sm btn-3d border-sky-800"
-                            >
-                                ⧉ Mở tab mới
-                            </a>
-                            <button
-                                onClick={() => setViewer(null)}
-                                className="px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 font-black text-xs sm:text-sm btn-3d border-red-800"
-                            >
-                                ✕ Đóng
-                            </button>
-                        </div>
-                    </div>
-
-                    <iframe
-                        src={resolveUrl(viewer.url)}
-                        title={viewer.name}
-                        className="flex-1 w-full bg-white border-0"
-                        allow="microphone; autoplay; clipboard-write"
-                    />
-                </div>
-            )}
+            {showPassModal && <PasswordModal correctPassword={password} onSuccess={() => { setShowPassModal(false); setManage(true); }} onClose={() => setShowPassModal(false)} />}
+            {showChangePass && <ChangePasswordModal currentPassword={password} onSave={setPassword} onClose={() => setShowChangePass(false)} />}
+            {showManageCats && <ManageCategoriesModal categories={categories} programs={programs} onApply={applyCategories} onClose={() => setShowManageCats(false)} />}
+            {editing && <EditModal initial={editing} categories={categories} onSave={saveProgram} onClose={() => setEditing(null)} />}
         </div>
     );
 };
