@@ -63,6 +63,18 @@ const EMOJI_CHOICES = [
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
+/* Hàm xử lý URL thông minh để hỗ trợ GitHub Pages */
+const resolveUrl = (url) => {
+    if (!url) return '#';
+    // Nếu là link tuyệt đối (http, https, blob, data, ...) thì giữ nguyên
+    if (/^(https?:\/\/|blob:|data:|mailto:)/i.test(url)) {
+        return url;
+    }
+    // Nếu là đường dẫn tương đối, lấy base path hiện tại trên GitHub Pages để ghép vào chính xác
+    const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+    return base + url;
+};
+
 /* ===== Dữ liệu mặc định ===== */
 const DEFAULT_PROGRAMS = [
     {
@@ -466,6 +478,7 @@ const ManageCategoriesModal = ({ categories, programs, onApply, onClose }) => {
    ========================================================= */
 const ProgramCard = ({ p, manage, onOpen, onEdit, onDelete, onMove, index, total }) => {
     const c = PALETTE[p.color] || PALETTE.sky;
+    const finalUrl = resolveUrl(p.url);
 
     const handleClick = () => {
         if (manage) onEdit(p);
@@ -484,7 +497,7 @@ const ProgramCard = ({ p, manage, onOpen, onEdit, onDelete, onMove, index, total
         >
             {!manage && (
                 <a
-                    href={p.url}
+                    href={finalUrl}
                     target="_blank"
                     rel="noreferrer"
                     onClick={(e) => e.stopPropagation()}
@@ -619,7 +632,7 @@ const EditModal = ({ initial, categories, onSave, onClose }) => {
                             className="w-full p-3 border-2 border-slate-300 rounded-xl font-bold focus:border-violet-400 outline-none"
                         />
                         <p className="text-xs text-slate-500 font-bold mt-1">
-                            💡 File cùng thư mục thì chỉ ghi tên file. Link ngoài thì dán đầy đủ https://...
+                            💡 File cùng thư mục trên GitHub thì chỉ ghi tên file. Link ngoài thì dán đầy đủ https://...
                         </p>
                     </div>
 
@@ -1118,7 +1131,7 @@ const App = () => {
                         </div>
                         <div className="flex gap-2 shrink-0">
                             <a
-                                href={viewer.url}
+                                href={resolveUrl(viewer.url)}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 font-black text-xs sm:text-sm btn-3d border-sky-800"
@@ -1135,7 +1148,7 @@ const App = () => {
                     </div>
 
                     <iframe
-                        src={viewer.url}
+                        src={resolveUrl(viewer.url)}
                         title={viewer.name}
                         className="flex-1 w-full bg-white border-0"
                         allow="microphone; autoplay; clipboard-write"
